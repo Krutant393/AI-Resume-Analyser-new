@@ -1,7 +1,52 @@
 import React from "react";
 import {Link} from "react-router-dom";
+import {useState} from 'react';
+import { useNavigate } from "react-router-dom";
+import axios from 'axios';
 
+import ResumeAnalysis from "./ResumeAnalysis";
 const Login = () => {
+
+  const navigate=useNavigate();
+
+
+const [password, setpassword] = useState('');
+const [email, setemail] = useState('');
+
+const handleLogin=async (e)=>{
+e.preventDefault();
+
+  try{
+    
+            const res = await axios.post(
+                "http://localhost:3000/api/auth/login",
+                {
+                    email,
+                    password
+                },
+                {
+                    withCredentials: false
+                }
+            );
+
+console.log("loggedin");
+
+  console.log(res.data);
+  navigate('/resumeanalysis');
+
+
+
+
+  }
+  catch(err){
+    console.log("Error");
+
+  }
+}
+
+
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-800 via-slate-900 to-cyan-950 px-4">
 
@@ -16,11 +61,14 @@ const Login = () => {
           Login to continue
         </p>
 
-        <form className="mt-8 space-y-5">
+        <form onSubmit={handleLogin} className="mt-8 space-y-5">
           <div>
             <label className="text-gray-300 text-sm">Email</label>
-            <input
-              type="email"
+            <input onChange={(e)=>{
+              setemail(e.target.value);
+
+            }}
+              type="email" value={email}
               placeholder="Enter your email"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-cyan-400"
             />
@@ -31,8 +79,12 @@ const Login = () => {
 
           <div>
             <label className="text-gray-300 text-sm">Password</label>
-            <input
-              type="password"
+            <input onChange={(e)=>{
+setpassword(e.target.value);
+
+
+            }}
+              type="password" name="password" value={password}
               placeholder="Enter your password"
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-gray-400 outline-none focus:border-cyan-400"
             />
