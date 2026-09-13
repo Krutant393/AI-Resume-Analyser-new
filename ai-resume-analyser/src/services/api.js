@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const LIVE_BACKEND_URL = 'https://ai-resume-analyser-backend-oenc.onrender.com';
+
 export const getBaseURL = () => {
     let rawUrl = import.meta.env.VITE_API_URL;
 
@@ -14,20 +16,13 @@ export const getBaseURL = () => {
             if (host === 'localhost' || host === '127.0.0.1') {
                 return 'http://localhost:3000/api/auth';
             }
-            // Auto-detect Render Blueprint companion backend (frontend -> backend)
-            if (host.includes('-frontend.onrender.com')) {
-                rawUrl = `https://${host.replace('-frontend.onrender.com', '-backend.onrender.com')}`;
-            } else if (host.includes('-frontend.')) {
-                rawUrl = `https://${host.replace('-frontend.', '-backend.')}`;
-            } else {
-                // Same-origin deployment (e.g. single service or reverse proxy)
-                rawUrl = window.location.origin;
-            }
+            // Deployed environment defaults directly to our live Render backend
+            rawUrl = LIVE_BACKEND_URL;
         }
     }
 
     if (!rawUrl) {
-        return 'http://localhost:3000/api/auth';
+        rawUrl = LIVE_BACKEND_URL;
     }
 
     rawUrl = rawUrl.trim();
