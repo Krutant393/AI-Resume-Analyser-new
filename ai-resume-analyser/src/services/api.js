@@ -1,10 +1,35 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
+export const getBaseURL = () => {
     let rawUrl = import.meta.env.VITE_API_URL;
+
+    // Check runtime browser environment for smart auto-detection
+    if (typeof window !== 'undefined') {
+        const storedUrl = localStorage.getItem('API_URL') || window.__API_URL__;
+        if (storedUrl) {
+            rawUrl = storedUrl;
+        } else if (!rawUrl) {
+            const host = window.location.hostname;
+            // Only fallback to localhost if actually running on localhost
+            if (host === 'localhost' || host === '127.0.0.1') {
+                return 'http://localhost:3000/api/auth';
+            }
+            // Auto-detect Render Blueprint companion backend (frontend -> backend)
+            if (host.includes('-frontend.onrender.com')) {
+                rawUrl = `https://${host.replace('-frontend.onrender.com', '-backend.onrender.com')}`;
+            } else if (host.includes('-frontend.')) {
+                rawUrl = `https://${host.replace('-frontend.', '-backend.')}`;
+            } else {
+                // Same-origin deployment (e.g. single service or reverse proxy)
+                rawUrl = window.location.origin;
+            }
+        }
+    }
+
     if (!rawUrl) {
         return 'http://localhost:3000/api/auth';
     }
+
     rawUrl = rawUrl.trim();
     if (rawUrl.startsWith('/')) {
         return rawUrl.endsWith('/api/auth') ? rawUrl : `${rawUrl.replace(/\/+$/, '')}/api/auth`;
@@ -23,8 +48,9 @@ const API = axios.create({
     withCredentials: true,
 });
 
-// Request interceptor to attach token from localStorage if present
+// Request interceptor to attach dynamic baseURL and token
 API.interceptors.request.use((config) => {
+    config.baseURL = getBaseURL();
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -34,10 +60,20 @@ API.interceptors.request.use((config) => {
     return Promise.reject(error);
 });
 
-// Response interceptor to handle unauthenticated 401 responses
+// Response interceptor to handle unauthenticated 401 responses and network error hints
 API.interceptors.response.use(
     (response) => response,
     (error) => {
+        if (!error.response) {
+            console.warn(
+                `[API Network Error] Could not reach backend API at: ${getBaseURL()}.\n` +
+                `If deployed on Render, verify:\n` +
+                `1. Your backend Web Service is active (not crashed/spinning up).\n` +
+                `2. VITE_API_URL is set in your frontend Static Site environment settings on Render.\n` +
+                `3. You triggered "Clear build cache & deploy" after setting VITE_API_URL.\n` +
+                `You can also set localStorage.setItem('API_URL', 'https://your-backend.onrender.com') in the browser console.`
+            );
+        }
         if (error.response && error.response.status === 401) {
             const path = window.location.pathname;
             if (path !== '/login' && path !== '/signup' && path !== '/') {
