@@ -4,11 +4,19 @@ const analysisModel = require('../models/analysisModel');
 const { analyzeResume } = require('../services/aiService');
 
 const parseAnalysis = (value) => {
-    const content = value
-        .trim()
+    if (typeof value === 'object' && value !== null) return value;
+    let content = String(value).trim();
+    content = content
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
-        .replace(/\s*```$/, '');
+        .replace(/\s*```$/, '')
+        .trim();
+
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+        content = content.slice(firstBrace, lastBrace + 1);
+    }
 
     return JSON.parse(content);
 };
@@ -80,7 +88,7 @@ const analysisController = async(req, res) => {
         const resume = await analysisModel.findOne({
             _id: resumeId,
             user: req.user.id
-        });
+        }).select('resume').lean();
 
         if (!resume) {
             return res.status(404).json({
@@ -91,28 +99,31 @@ const analysisController = async(req, res) => {
 
         const text = resume.resume;
 
-
         const response = await analyzeResume(text, jobDescription);
         const analysis = parseAnalysis(response);
 
+        // Save with retry logic to avoid socket reset failures after long AI wait
+        const analysisJsonString = JSON.stringify(analysis);
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                await analysisModel.findByIdAndUpdate(
+                    resumeId,
+                    { analysis: analysisJsonString }
+                );
+                break;
+            } catch (dbErr) {
+                console.warn(`MongoDB save attempt ${attempt}/3 notice:`, dbErr.message);
+                if (attempt < 3) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+        }
 
-
-        resume.analysis = JSON.stringify(analysis);
-        await resume.save();
-
-
-
-
-        res.json({
-
+        return res.json({
             success: true,
             message: "Analysis performed successfully",
             analysis
-        })
-
-
-
-
+        });
 
     } catch (err) {
         if (err.response) {
@@ -194,12 +205,50 @@ const responseController = async(req, res) => {
             message: "Could not fetch analysis"
         });
     }
+};
 
+const historyController = async (req, res) => {
+    try {
+        const history = await analysisModel.find({ user: req.user.id })
+            .sort({ _id: -1 })
+            .lean();
 
+        const formatted = history.map(item => {
+            let parsedAnalysis = null;
+            if (item.analysis && item.analysis !== "Analysis not yet performed") {
+                try {
+                    parsedAnalysis = parseAnalysis(item.analysis);
+                } catch (e) {
+                    parsedAnalysis = null;
+                }
+            }
+            return {
+                id: item._id,
+                createdAt: item._id.getTimestamp ? item._id.getTimestamp() : new Date(),
+                hasAnalysis: !!parsedAnalysis,
+                score: parsedAnalysis?.score ?? null,
+                matchLevel: parsedAnalysis?.overall_assessment?.match_level ?? null,
+                summary: parsedAnalysis?.overall_assessment?.summary ?? null,
+                resumeSnippet: item.resume ? item.resume.substring(0, 150) + "..." : ""
+            };
+        });
 
+        return res.json({
+            success: true,
+            history: formatted
+        });
+    } catch (err) {
+        console.error("History fetch error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch history"
+        });
+    }
+};
 
-
-}
-
-
-module.exports = { analysisController, uploadPDF, responseController };;
+module.exports = {
+    analysisController,
+    uploadPDF,
+    responseController,
+    historyController
+};

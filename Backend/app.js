@@ -8,7 +8,17 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+        if (
+            origin.startsWith('http://localhost') ||
+            origin.startsWith('http://127.0.0.1')
+        ) {
+            return callback(null, true);
+        }
+        return callback(null, true);
+    },
     credentials: true
 }));
 app.use(cookieParser());

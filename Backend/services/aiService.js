@@ -50,13 +50,13 @@ ATS SCORE:
 Calculate an ATS compatibility score from 0 to 100.
 
 The score should consider approximately:
-- Keyword match: 25%
-- Technical skills match: 20%
+- Keyword match: 10%
+- Technical skills match: 30%
 - Job responsibility alignment: 20%
 - Project/experience relevance: 15%
 - Education/qualification match: 5%
 - Resume structure and ATS readability: 10%
-- Measurable achievements and impact: 5%
+- Measurable achievements and impact: 10%
 
 The score must reflect the actual resume and job description.
 Do not artificially increase the score.
@@ -402,7 +402,7 @@ IMPORTANT DISTINCTION:
 
 For every suggested resume change, prioritize truthfulness over ATS optimization.
 
-If the resume does not contain enough information to determine something, return an empty array or clearly state "insufficient evidence" rather than guessing.
+If the resume does not contain enough information to determine something also the file uploaded is not resume or some other document by reading it return invalid document or something in ats score, return an empty array or clearly state "insufficient evidence" rather than guessing.
 `
                 },
                 {
