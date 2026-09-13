@@ -1,7 +1,25 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+    let rawUrl = import.meta.env.VITE_API_URL;
+    if (!rawUrl) {
+        return 'http://localhost:3000/api/auth';
+    }
+    rawUrl = rawUrl.trim();
+    if (rawUrl.startsWith('/')) {
+        return rawUrl.endsWith('/api/auth') ? rawUrl : `${rawUrl.replace(/\/+$/, '')}/api/auth`;
+    }
+    if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+        rawUrl = `https://${rawUrl}`;
+    }
+    if (!rawUrl.endsWith('/api/auth')) {
+        rawUrl = `${rawUrl.replace(/\/+$/, '')}/api/auth`;
+    }
+    return rawUrl;
+};
+
 const API = axios.create({
-    baseURL: 'http://localhost:3000/api/auth',
+    baseURL: getBaseURL(),
     withCredentials: true,
 });
 
