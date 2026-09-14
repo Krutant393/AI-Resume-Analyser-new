@@ -50,8 +50,8 @@ ATS SCORE:
 Calculate an ATS compatibility score from 0 to 100.
 
 The score should consider approximately:
-- Keyword match: 10%
-- Technical skills match: 30%
+- Keyword match: 15%
+- Technical skills match: 25%
 - Job responsibility alignment: 20%
 - Project/experience relevance: 15%
 - Education/qualification match: 5%
