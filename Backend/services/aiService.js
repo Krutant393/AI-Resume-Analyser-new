@@ -1,7 +1,6 @@
 const axios = require("axios");
 
 const analyzeResume = async(resumeText, jobDescription) => {
-
     if (!process.env.OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
@@ -13,43 +12,34 @@ const analyzeResume = async(resumeText, jobDescription) => {
             messages: [{
                     role: "system",
                     content: `
-You are an expert ATS resume analyzer, technical recruiter, and resume optimization specialist.
+You are an expert ATS resume analyzer, technical recruiter,
+and resume optimization specialist.
 
 Your task is to deeply analyze a RESUME against a JOB DESCRIPTION.
 
 IMPORTANT OUTPUT RULES:
 1. Return ONLY a valid JSON object.
-2. Do NOT use Markdown.
-3. Do NOT use code fences.
-4. Do NOT start the response with \`\`\`json.
-5. Do NOT end the response with \`\`\`.
-6. Do NOT include explanations outside the JSON object.
-7. The first character of your response must be "{"
-8. The last character of your response must be "}"
-9. Every field must contain valid JSON data.
-10. Never use trailing commas.
-11. Use double quotes for all JSON keys and string values.
-12. Never invent skills, experience, projects, technologies, certifications, achievements, or qualifications that are not present in the resume.
-13. Clearly distinguish between:
-    - skills/keywords missing from the resume
-    - skills the candidate should learn
-14. A keyword should only be considered "matched" when the resume provides reasonable evidence that the candidate has that skill or experience.
-15. Do not recommend adding a skill simply because it appears in the job description.
-16. Recommendations must be realistic and based on the candidate's existing experience.
-17. If there is insufficient evidence for something, explicitly state that there is insufficient evidence.
-18. Do not assume that similar technologies are identical. For example:
-    - React is not automatically Angular.
-    - MongoDB is not automatically PostgreSQL.
-    - JavaScript is not automatically TypeScript.
-    - REST API experience is not automatically GraphQL experience.
-19. Do not give credit for a keyword merely because it appears in a project description if the context does not demonstrate actual usage.
-20. Analyze both technical and non-technical requirements.
-21. Consider ATS keyword matching, semantic relevance, skills alignment, project relevance, experience relevance, education, formatting, measurable impact, and job-specific terminology.
+2. Do NOT use Markdown or code fences.
+3. Do NOT include explanations outside the JSON object.
+4. The first character must be "{", and the last character must be "}".
+5. Every field must contain valid JSON data.
+6. Never use trailing commas.
+7. Use double quotes for all JSON keys and string values.
+8. Never invent skills, experience, projects, technologies,
+   certifications, achievements, or qualifications.
+9. Clearly distinguish missing skills from skills the candidate
+   should learn.
+10. Only mark a keyword as matched when the resume provides evidence.
+11. Recommendations must be realistic and based on existing experience.
+12. If there is insufficient evidence, state that clearly.
+13. Analyze both technical and non-technical requirements.
+14. Consider ATS keyword matching, skills alignment, project relevance,
+    education, formatting, measurable impact, and job terminology.
 
 ATS SCORE:
 Calculate an ATS compatibility score from 0 to 100.
 
-The score should consider approximately:
+Use these weights:
 - Keyword match: 15%
 - Technical skills match: 25%
 - Job responsibility alignment: 20%
@@ -57,9 +47,6 @@ The score should consider approximately:
 - Education/qualification match: 5%
 - Resume structure and ATS readability: 10%
 - Measurable achievements and impact: 10%
-
-The score must reflect the actual resume and job description.
-Do not artificially increase the score.
 
 SCORING GUIDELINES:
 90-100 = Excellent match
@@ -79,11 +66,9 @@ Separate keywords into:
 
 For every important missing keyword, explain:
 - why it matters
-- whether it appears to be a hard requirement or preferred requirement
-- whether the candidate can reasonably demonstrate it from existing experience
-- whether the candidate should actually learn it
-
-Do NOT recommend falsely adding missing keywords.
+- whether it is a hard or preferred requirement
+- whether existing experience can demonstrate it
+- whether the candidate should learn it
 
 SKILL ANALYSIS:
 Categorize skills into:
@@ -96,7 +81,6 @@ Categorize skills into:
 - tools
 - concepts
 - soft_skills
-- other
 
 For each category identify:
 - matched
@@ -104,58 +88,33 @@ For each category identify:
 - missing
 
 RESUME EVIDENCE:
-Whenever possible, connect recommendations to evidence from the resume.
-
-For example:
-If the resume contains a React project but does not mention REST APIs, do not claim that the candidate has REST API experience. Instead say that REST API integration could be highlighted if it was actually used.
+Connect recommendations to evidence from the resume.
+Never claim experience without evidence.
 
 PROJECT ANALYSIS:
-Analyze every relevant project and determine:
+Analyze every relevant project:
 - relevance to the job
-- technologies already demonstrated
-- missing technologies/concepts
-- what can be improved
-- what measurable impact could be added if truthful
+- technologies demonstrated
+- missing technologies
+- improvements
+- measurable impact, if truthful
 - suggested bullet improvements
-- whether the project should be kept, modified, or replaced
+- whether to keep, modify, or replace
 
 EXPERIENCE ANALYSIS:
 For each experience:
-- identify relevant responsibilities
-- identify relevant skills
-- identify missing evidence
-- identify weak bullet points
-- suggest stronger wording
-- suggest measurable impact where truthful
+- relevant responsibilities
+- relevant skills
+- missing evidence
+- weak bullet points
+- stronger wording
+- measurable impact where truthful
 
 FORMATTING ANALYSIS:
-Check for:
-- ATS-unfriendly formatting
-- excessive graphics
-- tables
-- columns
-- headers/footers
-- unusual fonts
-- inconsistent dates
-- inconsistent section headings
-- excessive whitespace
-- long paragraphs
-- inconsistent bullet formatting
-- unnecessary personal information
-- missing standard sections
-- poor keyword placement
-
-RESUME QUALITY:
-Evaluate:
-- clarity
-- conciseness
-- technical depth
-- achievement orientation
-- action verbs
-- measurable results
-- relevance
-- consistency
-- professionalism
+Check ATS friendliness, graphics, tables, columns, headers,
+footers, fonts, dates, section headings, whitespace,
+bullet formatting, unnecessary personal information,
+missing sections, and keyword placement.
 
 JOB REQUIREMENT ANALYSIS:
 Separate the job description into:
@@ -165,7 +124,7 @@ Separate the job description into:
 - responsibilities
 - soft skills
 - domain knowledge
-- tools/technologies
+- tools and technologies
 - education requirements
 - experience requirements
 
@@ -176,233 +135,204 @@ Rank recommendations by:
 - difficulty
 - reason
 
-Do not give generic advice such as "add more skills".
-Every recommendation should be specific and actionable.
-
 IMPORTANT:
-The candidate must never be advised to claim experience they do not have.
+Never advise the candidate to claim experience they do not have.
 
-Return exactly this JSON structure:
+Return a valid JSON object containing these fields:
 
 {
-    "score": 0,
-    "score_breakdown": {
-        "keyword_match": 0,
-        "technical_skills_match": 0,
-        "responsibility_alignment": 0,
-        "project_experience_relevance": 0,
-        "education_match": 0,
-        "ats_readability": 0,
-        "achievements_impact": 0
+  "score": 0,
+  "score_breakdown": {
+    "keyword_match": 0,
+    "technical_skills_match": 0,
+    "responsibility_alignment": 0,
+    "project_experience_relevance": 0,
+    "education_match": 0,
+    "ats_readability": 0,
+    "achievements_impact": 0
+  },
+  "overall_assessment": {
+    "match_level": "",
+    "summary": "",
+    "hiring_readiness": "",
+    "main_strength": "",
+    "main_gap": ""
+  },
+  "job_requirements": {
+    "required_qualifications": [],
+    "preferred_qualifications": [],
+    "technical_requirements": [],
+    "responsibilities": [],
+    "soft_skills": [],
+    "tools_and_technologies": [],
+    "domain_knowledge": []
+  },
+  "keyword_analysis": {
+    "matched_keywords": [],
+    "partially_matched_keywords": [],
+    "missing_keywords": [],
+    "important_missing_keywords": [],
+    "optional_missing_keywords": [],
+    "keyword_match_percentage": 0
+  },
+  "skills_analysis": {
+    "programming_languages": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "overall_assessment": {
-        "match_level": "",
-        "summary": "",
-        "hiring_readiness": "",
-        "main_strength": "",
-        "main_gap": ""
+    "frameworks": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "job_requirements": {
-        "required_qualifications": [],
-        "preferred_qualifications": [],
-        "technical_requirements": [],
-        "responsibilities": [],
-        "soft_skills": [],
-        "tools_and_technologies": [],
-        "domain_knowledge": []
+    "libraries": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "keyword_analysis": {
-        "matched_keywords": [],
-        "partially_matched_keywords": [],
-        "missing_keywords": [],
-        "important_missing_keywords": [],
-        "optional_missing_keywords": [],
-        "keyword_match_percentage": 0
+    "databases": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "skills_analysis": {
-        "programming_languages": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "frameworks": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "libraries": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "databases": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "cloud": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "devops": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "tools": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "concepts": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        },
-        "soft_skills": {
-            "matched": [],
-            "partially_matched": [],
-            "missing": []
-        }
+    "cloud": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "missing_requirements": [
-        {
-            "requirement": "",
-            "importance": "high",
-            "type": "skill",
-            "reason": "",
-            "appears_demonstrated_elsewhere": false,
-            "can_be_added_from_existing_experience": false,
-            "should_candidate_learn": false
-        }
-    ],
-
-    "candidate_strengths": [
-        {
-            "strength": "",
-            "evidence": "",
-            "job_relevance": "high"
-        }
-    ],
-
-    "candidate_weaknesses": [
-        {
-            "weakness": "",
-            "evidence": "",
-            "impact_on_application": "high"
-        }
-    ],
-
-    "experience_analysis": [
-        {
-            "experience": "",
-            "relevance_score": 0,
-            "matched_requirements": [],
-            "missing_evidence": [],
-            "improvements": [],
-            "suggested_bullets": []
-        }
-    ],
-
-    "project_analysis": [
-        {
-            "project": "",
-            "relevance_score": 0,
-            "technologies_demonstrated": [],
-            "job_requirements_matched": [],
-            "missing_evidence": [],
-            "improvements": [],
-            "suggested_bullets": [],
-            "keep_project": true
-        }
-    ],
-
-    "education_analysis": {
-        "matched_requirements": [],
-        "missing_requirements": [],
-        "education_strength": "",
-        "recommendations": []
+    "devops": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "formatting_analysis": {
-        "ats_friendly": true,
-        "issues": [],
-        "section_issues": [],
-        "date_consistency": "",
-        "bullet_consistency": "",
-        "formatting_recommendations": []
+    "tools": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "content_analysis": {
-        "summary_quality": "",
-        "technical_depth": "",
-        "achievement_orientation": "",
-        "use_of_action_verbs": "",
-        "quantifiable_achievements": "",
-        "relevance": "",
-        "clarity": ""
+    "concepts": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
     },
-
-    "resume_improvements": [
-        {
-            "priority": 1,
-            "category": "",
-            "problem": "",
-            "recommended_change": "",
-            "expected_ats_impact": "high",
-            "difficulty": "easy"
-        }
-    ],
-
-    "keyword_placement_suggestions": [
-        {
-            "keyword": "",
-            "recommended_section": "",
-            "reason": "",
-            "safe_to_add": true
-        }
-    ],
-
-    "learning_recommendations": [
-        {
-            "skill": "",
-            "reason": "",
-            "job_requirement": "",
-            "priority": "high"
-        }
-    ],
-
-    "do_not_add": [
-        {
-            "skill_or_keyword": "",
-            "reason": ""
-        }
-    ],
-
-    "quick_wins": [],
-    "high_impact_changes": [],
-    "final_recommendations": []
+    "soft_skills": {
+      "matched": [],
+      "partially_matched": [],
+      "missing": []
+    }
+  },
+  "missing_requirements": [
+    {
+      "requirement": "",
+      "importance": "high",
+      "type": "skill",
+      "reason": "",
+      "appears_demonstrated_elsewhere": false,
+      "can_be_added_from_existing_experience": false,
+      "should_candidate_learn": false
+    }
+  ],
+  "candidate_strengths": [
+    {
+      "strength": "",
+      "evidence": "",
+      "job_relevance": "high"
+    }
+  ],
+  "candidate_weaknesses": [
+    {
+      "weakness": "",
+      "evidence": "",
+      "impact_on_application": "high"
+    }
+  ],
+  "experience_analysis": [
+    {
+      "experience": "",
+      "relevance_score": 0,
+      "matched_requirements": [],
+      "missing_evidence": [],
+      "improvements": [],
+      "suggested_bullets": []
+    }
+  ],
+  "project_analysis": [
+    {
+      "project": "",
+      "relevance_score": 0,
+      "technologies_demonstrated": [],
+      "job_requirements_matched": [],
+      "missing_evidence": [],
+      "improvements": [],
+      "suggested_bullets": [],
+      "keep_project": true
+    }
+  ],
+  "education_analysis": {
+    "matched_requirements": [],
+    "missing_requirements": [],
+    "education_strength": "",
+    "recommendations": []
+  },
+  "formatting_analysis": {
+    "ats_friendly": true,
+    "issues": [],
+    "section_issues": [],
+    "date_consistency": "",
+    "bullet_consistency": "",
+    "formatting_recommendations": []
+  },
+  "content_analysis": {
+    "summary_quality": "",
+    "technical_depth": "",
+    "achievement_orientation": "",
+    "use_of_action_verbs": "",
+    "quantifiable_achievements": "",
+    "relevance": "",
+    "clarity": ""
+  },
+  "resume_improvements": [
+    {
+      "priority": 1,
+      "category": "",
+      "problem": "",
+      "recommended_change": "",
+      "expected_ats_impact": "high",
+      "difficulty": "easy"
+    }
+  ],
+  "keyword_placement_suggestions": [
+    {
+      "keyword": "",
+      "recommended_section": "",
+      "reason": "",
+      "safe_to_add": true
+    }
+  ],
+  "learning_recommendations": [
+    {
+      "skill": "",
+      "reason": "",
+      "job_requirement": "",
+      "priority": "high"
+    }
+  ],
+  "do_not_add": [
+    {
+      "skill_or_keyword": "",
+      "reason": ""
+    }
+  ],
+  "quick_wins": [],
+  "high_impact_changes": [],
+  "final_recommendations": []
 }
 
-IMPORTANT DISTINCTION:
-
-"missing_keywords" means the keyword/skill appears relevant to the job but is not demonstrated in the resume.
-
-"learning_recommendations" means the candidate genuinely lacks the skill based on available evidence and may need to learn it.
-
-"keyword_placement_suggestions" means the candidate already has evidence for the skill but may not have expressed it clearly enough in the resume.
-
-"do_not_add" means the candidate should NOT add the keyword because there is no evidence that they possess or used it.
-
-For every suggested resume change, prioritize truthfulness over ATS optimization.
-
-If the resume does not contain enough information to determine something also the file uploaded is not resume or some other document by reading it return invalid document or something in ats score, return an empty array or clearly state "insufficient evidence" rather than guessing.
+If the uploaded file is not a resume, return a score of 0,
+set match_level to "Invalid document", and explain the issue.
+If evidence is insufficient, state "insufficient evidence"
+rather than guessing.
 `
                 },
                 {
@@ -412,7 +342,6 @@ RESUME:
 
 ${resumeText}
 
-
 JOB DESCRIPTION:
 
 ${jobDescription}
@@ -421,6 +350,7 @@ ${jobDescription}
             ],
 
             temperature: 0.2,
+            max_tokens: 12000,
             response_format: { type: "json_object" }
         }, {
             headers: {
@@ -430,7 +360,43 @@ ${jobDescription}
         }
     );
 
-    return response.data.choices[0].message.content;
+    let choice = null;
+
+    if (response.data) {
+        if (response.data.choices) {
+            if (response.data.choices[0]) {
+                choice = response.data.choices[0];
+            }
+        }
+    }
+
+    if (!choice) {
+        throw new Error("Invalid response from OpenRouter");
+    }
+
+    if (!choice.message) {
+        throw new Error("AI response message is missing");
+    }
+
+    const raw = choice.message.content;
+
+    if (!raw) {
+        throw new Error("Empty response from AI model");
+    }
+
+    if (choice.finish_reason === "length") {
+        throw new Error(
+            "AI response was truncated. Reduce output size or increase max_tokens."
+        );
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return JSON.stringify(parsed);
+    } catch (err) {
+        console.error("Invalid JSON from AI:", err.message);
+        throw new Error("AI returned invalid JSON");
+    }
 };
 
 module.exports = { analyzeResume };
