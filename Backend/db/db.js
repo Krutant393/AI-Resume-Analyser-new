@@ -1,11 +1,7 @@
 const mongoose = require('mongoose');
-const dns = require('dns');
 
-try {
-    dns.setServers(["8.8.8.8", "1.1.1.1"]);
-} catch (e) {
-    console.warn("Could not set DNS servers:", e.message);
-}
+
+
 
 const connectDB = async () => {
     try {
